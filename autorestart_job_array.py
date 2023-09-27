@@ -51,7 +51,7 @@ def main(
     termination_str="",
     verbose=True,
     resume_job_id: int = None,
-    resume_array_task_ids: int = None
+    resume_array_task_ids: int = None,
 ):
     cmd_check_job_in_queue = "squeue -r -j {job_id}"
     cmd_check_job_array_in_queue = "squeue -j {job_id}_{array_task_id}"
@@ -59,7 +59,6 @@ def main(
     array_task_ids_to_restart = []
     array_task_ids_done = []
     while True:
-
         if start_condition:
             if verbose:
                 print("Checking start condition...")
@@ -80,14 +79,26 @@ def main(
             resume_job_id = None
             resume_array_task_ids = None
         else:
-            # launch job on hold
-            output = check_output(cmd.replace("sbatch ", "sbatch --hold ") if "--hold" not in cmd else cmd, shell=True).decode()
+            # launch job on hold so to prevent immediate execution and get array ids
+            output = check_output(
+                cmd.replace("sbatch ", "sbatch --hold ")
+                if "--hold" not in cmd
+                else cmd,
+                shell=True,
+            ).decode()
             # get job id and all array task ids
             job_id = get_job_id(output).split("\n")[0].split("_")[0]
-            array_task_ids = re.findall(f"${job_id}_\d+", check_output(cmd_check_job_in_queue).decode())
+            array_task_ids = [
+                i[len(job_id) + 1 :]
+                for i in re.findall(
+                    f"${job_id}_\d+", check_output(cmd_check_job_in_queue).decode()
+                )
+            ]
             array_task_ids = [i for i in array_task_ids if i not in array_task_ids_done]
-            # actually let the job queue
-            check_output(f"scontrol release ${job_id}").decode()
+
+            # actually start the job if it wasn't meant to be on hold
+            if "--hold" not in cmd:
+                check_output(f"scontrol release ${job_id}").decode()
 
             if job_id is None:
                 if verbose:
@@ -104,14 +115,14 @@ def main(
             # in the queue, then, if present in the queue check if it is still running
             # and not frozen. The job is relaunched when it is no longuer running or
             # frozen. Then the same process is repeated.
-            if not array_task_ids:
-                break
-            for array_id in array_task_ids:
-                if array_id in array_task_ids_done:
-                    continue
+
+            for array_task_id in array_task_ids:
                 try:
                     data = check_output(
-                        cmd_check_job_array_in_queue.format(job_id=job_id, array_task_id=array_id), shell=True
+                        cmd_check_job_array_in_queue.format(
+                            job_id=job_id, array_task_id=array_task_id
+                        ),
+                        shell=True,
                     ).decode()
                 except Exception as ex:
                     # Exception after checking, which means that the job id no longer exists.
@@ -120,31 +131,40 @@ def main(
                         print(ex)
                     if check_if_done(
                         output_file_template.format(
-                            job_id=job_id, array_task_id=array_id
+                            job_id=job_id, array_task_id=array_task_id
                         ),
                         termination_str,
                     ):
                         if verbose:
                             print("Termination string found, finishing")
-                            array_task_ids_done.append(array_id)
+                        array_task_ids_done.append(array_task_id)
                     continue
 
                 # if job is not present in the queue, relaunch it directly, except if termination string is found
-                if str(job_id) + "_" + str(array_id) not in data:
+                if str(job_id) + "_" + str(array_task_id) not in data:
                     if check_if_done(
-                        output_file_template.format(job_id=job_id, array_task_id=array_task_id), termination_str
+                        output_file_template.format(
+                            job_id=job_id, array_task_id=array_task_id
+                        ),
+                        termination_str,
                     ):
                         if verbose:
                             print("Termination string found, finishing")
-                            array_task_ids_done.append(array_id)
-                    continue
+                        array_task_ids_done.append(array_task_id)
+                        continue
+
                 # Check first if job is specifically on a running state (to avoid the case where it is on pending state etc)
                 data = check_output(
-                    cmd_check_job_running.format(job_id=job_id, array_id=array_task_id), shell=True
+                    cmd_check_job_running.format(
+                        job_id=job_id, array_task_id=array_task_id
+                    ),
+                    shell=True,
                 ).decode()
-                if str(job_id) + "_" + str(array_id) in data:
+                if str(job_id) + "_" + str(array_task_id) in data:
                     # job on running state
-                    output_file = output_file_template.format(job_id=job_id, array_task_id=array_id)
+                    output_file = output_file_template.format(
+                        job_id=job_id, array_task_id=array_task_id
+                    )
                     if verbose:
                         print("Check if the job is freezing...")
                     # if job is on running state, check the output file
@@ -156,18 +176,25 @@ def main(
                     # if the file did not change, then it is considered
                     # to be frozen
                     # (make sure there are is output before checking)
-                    if output_data and output_data_prev and output_data == output_data_prev:
+                    if (
+                        output_data
+                        and output_data_prev
+                        and output_data == output_data_prev
+                    ):
                         if verbose:
                             print("Job frozen, stopping the job then restarting it")
-                        call(f"scancel {job_id}_{array_id}", shell=True)
+                        call(f"scancel {job_id}_{array_task_id}", shell=True)
                         continue
-                else:
-                    # job not on running state, so it is present in the queue but in a different state
-                    # In this case, we wait, then check again if the job is still on the queue
-                    time.sleep(check_interval_secs)
+
+            array_task_ids = [i for i in array_task_ids if i not in array_task_ids_done]
+
+            if not array_task_ids:
+                break
+
             if verbose:
                 print(f"Retrying again in {check_interval_secs//60} mins...")
-                time.sleep(check_interval_secs)
+
+            time.sleep(check_interval_secs)
 
 
 def check_if_done(logfile, termination_str):
