@@ -56,8 +56,9 @@ def main(
     cmd_check_job_in_queue = "squeue -r -j {job_id}"
     cmd_check_job_array_in_queue = "squeue -r -j {job_id}_{array_task_id}"
     cmd_check_job_running = "squeue -j {job_id}_{array_task_id} -t R"
-    array_task_ids_to_restart = []
+    array_task_ids = []
     array_task_ids_done = []
+    array_task_ids_to_restart = []
     while True:
         if start_condition:
             if verbose:
@@ -75,11 +76,20 @@ def main(
             print(cmd)
         if resume_job_id is not None and resume_array_task_ids is not None:
             job_id = resume_job_id
-            array_task_ids = resume_array_task_ids
+            _from, _to = resume_array_task_ids.split(" ")
+            array_task_ids = list(range(_from, _to))
             resume_job_id = None
             resume_array_task_ids = None
         else:
             # launch job on hold so to prevent immediate execution and get array ids
+            if array_task_ids_to_restart:
+                cmd = re.sub(
+                    "#SBATCH --array.*\n",
+                    "#SBATCH --array=" + ",".join(array_task_ids_to_restart) + "\n",
+                    cmd,
+                )
+                array_task_ids_to_restart = []
+
             output = check_output(
                 cmd.replace("sbatch ", "sbatch --hold ")
                 if "--hold" not in cmd
@@ -91,7 +101,10 @@ def main(
             array_task_ids = [
                 i[len(job_id) + 1 :]
                 for i in re.findall(
-                    f"{job_id}_\d+", check_output(cmd_check_job_in_queue.format(job_id=job_id), shell=True).decode()
+                    f"{job_id}_\d+",
+                    check_output(
+                        cmd_check_job_in_queue.format(job_id=job_id), shell=True
+                    ).decode(),
                 )
             ]
             array_task_ids = [i for i in array_task_ids if i not in array_task_ids_done]
@@ -115,8 +128,17 @@ def main(
             # in the queue, then, if present in the queue check if it is still running
             # and not frozen. The job is relaunched when it is no longuer running or
             # frozen. Then the same process is repeated.
+            if verbose:
+                print(f"Task IDs:", array_task_ids)
+                print(f"Task IDs done:", array_task_ids_done)
+                print(f"Task IDs to restart:", array_task_ids_to_restart)
 
             for array_task_id in array_task_ids:
+
+
+                if array_task_id in array_task_ids_done:
+                    continue
+
                 try:
                     data = check_output(
                         cmd_check_job_array_in_queue.format(
@@ -138,6 +160,8 @@ def main(
                         if verbose:
                             print("Termination string found, finishing")
                         array_task_ids_done.append(array_task_id)
+                    else:
+                        array_task_ids_to_restart.append(array_task_id)
                     continue
 
                 # if job is not present in the queue, relaunch it directly, except if termination string is found
@@ -151,6 +175,8 @@ def main(
                         if verbose:
                             print("Termination string found, finishing")
                         array_task_ids_done.append(array_task_id)
+                    else:
+                        array_task_ids_to_restart.append(array_task_id)
                         continue
 
                 # Check first if job is specifically on a running state (to avoid the case where it is on pending state etc)
@@ -184,17 +210,20 @@ def main(
                         if verbose:
                             print("Job frozen, stopping the job then restarting it")
                         call(f"scancel {job_id}_{array_task_id}", shell=True)
+                        array_task_ids_to_restart.append(array_task_id)
                         continue
 
-            array_task_ids = [i for i in array_task_ids if i not in array_task_ids_done]
-
-            if not array_task_ids:
-                break
-
-            if verbose:
-                print(f"Retrying again in {check_interval_secs//60} mins...")
+            if set(array_task_ids_to_restart + array_task_ids_done) == set(array_task_ids):
+                if array_task_ids_to_restart:
+                    break
+                else:
+                    return
 
             time.sleep(check_interval_secs)
+            continue
+
+
+
 
 
 def check_if_done(logfile, termination_str):
@@ -220,8 +249,8 @@ if __name__ == "__main__":
     # run(main)
     main(
         cmd="sbatch test_slurm_arrays.sbatch",
-        check_interval_secs=30,
-        output_file_template="slurm_logs/{job_id}_{array_task_id}.out",
+        check_interval_secs=10,
+        output_file_template="slurm_logs/slurm-{job_id}_{array_task_id}.out",
         termination_str="EXP",
         verbose=True,
     )
