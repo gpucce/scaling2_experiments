@@ -98,7 +98,7 @@ def main(
 
             # actually start the job if it wasn't meant to be on hold
             if "--hold" not in cmd:
-                call(f"scontrol release ${job_id}").decode()
+                call(f"scontrol release ${job_id}")
 
             if job_id is None:
                 if verbose:
