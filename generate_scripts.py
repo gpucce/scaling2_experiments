@@ -1,11 +1,12 @@
 from clize import run
 import pandas as pd
 import math
+from pathlib import Path
 import omegaconf
 from cfg_templates import Arch, Data, Experiment
 
 
-TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENT_VAL_PATH}"""
+TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
 
 template_kwargs = [
     "TRAIN_DATA", "TRAIN_NUM_SAMPLES", "LOGS", "WARMUP",
@@ -32,31 +33,42 @@ def main(*, cfg, task="scripts"):
                 )
             )
 
-    print(experiments)
-    print(experiments[0])
+    Path(cfg.experiments_list_file).parent.mkdir(parents=True, exist_ok=True)
+    with open(cfg.experiments_list_file, "w") as fd:
+        for experiment in experiments:
 
-    for experiment in experiments:
+            if experiment.data_done and experiment.model_done:
+                continue
 
-        if experiment.data_done and experiment.model_done:
-            continue
-
-        cmd = TEMPLATE.format(
+            cmd = TEMPLATE.format(
+                LR = experiment.lr,
                 TRAIN_DATA = experiment.data_path,
                 TRAIN_NUM_SAMPLES = experiment.size,
-
                 WARMUP = experiment.warmup,
                 BATCH_SIZE = experiment.batch_size,
                 EPOCHS = experiment.epochs,
                 MODEL = experiment.model_name,
-                DATASET_RESAMPLES = "--dataset-resampled" if experiment.resampled else "",
+                DATASET_RESAMPLED = "--dataset-resampled" if experiment.resampled else "",
                 SEED = experiment.get("seed", None),
                 GRAD_CHECKPOINTING = "--grad-checkpointing" if experiment.checkpointing else "",
-                PRECISION = experiment.precision.get("precision", None),
+                PRECISION = experiment.get("precision", None),
                 WANDB_PROJECT_NAME = experiment.get("wand_project_name", None),
                 VAL_FREQUENCY = experiment.get("val_frequency", None),
                 IMAGENET_VAL_PATH = experiment.get("imagenet_val_path", None),
                 LOGS = experiment.get("logs", None),
-        )
+            )
+
+            fd.write(cmd)
+
+    with open(cfg.sbatch_script_template_path) as fd:
+        tpl = fd.read()
+
+    Path(cfg.sbatch_script_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(cfg.sbatch_script_path, "w") as fd:
+        fd.write(tpl)
+        fd.write("\n")
+        fd.write("srun --cpu_bind=none,v --accel-bind=gn python -u")
+        fd.write(" \"$(cat {exp_list} | sed -n -p SLURM_ARRAY_TASK_IDp)\"".format(exp_list=cfg.experiments_list_file))
 
 #     delta = 0
 #     act = pd.read_csv('clip_table_2.csv')

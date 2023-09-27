@@ -6,6 +6,7 @@ class Data:
     data_path: str
     size: int
     resampled: bool
+    epochs: int
     data_done: bool = False
 
 
@@ -18,6 +19,7 @@ class Arch:
     lr: float
     checkpointing: bool
     nodes: int
+    precision: str = "amp_bfloat16"
 
 @dataclass
 class Experiment:
@@ -27,8 +29,11 @@ class Experiment:
     lr: float
     checkpointing: bool
     nodes: int
+    precision: str
     data_name: str
     data_path: str
     size: int
+    epochs: int
     resampled: bool
+    data_done: bool = False
 

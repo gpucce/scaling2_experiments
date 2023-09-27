@@ -1,73 +1,91 @@
+
+sbatch_script_template_path: "./template_sbatch_script"
+experiments_list_file: "./experiments/experiments_list"
+sbatch_script_path: "./sbatch_scripts/experiment_sbatch_script.sbatch"
 datasets:
   -
     data_name: laion2b_1_28M
     data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
     size: 1356460
+    epochs: 1
     resampled: true
   -
     data_name: laion2b_12_8M
     data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
     size: 13564607
+    epochs: 1
     resampled: true
   -
     data_name: laion2b_128M
     data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
     size: 135646078
+    epochs: 1
     resampled: true
   -
     data_name: laion2b_1_28B
     data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
     size: 135646078
+    epochs: 1
     resampled: true
   -
     data_name: laion2b_3B
     data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
     size: 135646078
+    epochs: 24
     resampled: true
   -
     data_name: laion2b_13B
     data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
     size: 135646078
+    epochs: 97
     resampled: true
   -
     data_name: laion2b_34B
     data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
     size: 135646078
+    epochs: 252
     resampled: true
   -
     data_name: datacomp_1_28M
     data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
     size: 1356460
+    epochs: 1
     resampled: true
   -
     data_name: datacomp_12_8M
     data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
     size: 13564607
+    epochs: 1
     resampled: true
   -
     data_name: datacomp_128M
     data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
     size: 135646078
+    epochs: 1
     resampled: true
   -
     data_name: datacomp_1_28B
     data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
     size: 1356460789
+    epochs: 1
     resampled: true
   -
     data_name: datacomp_3B
     data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
     size: 135646078
+    epochs: 24
     resampled: true
   -
     data_name: datacomp_13B
     data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
     size: 135646078
+    epochs: 97
     resampled: true
   -
     data_name: datacomp_34B
     data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
     size: 135646078
+    epochs: 252
     resampled: true
 
 models:
