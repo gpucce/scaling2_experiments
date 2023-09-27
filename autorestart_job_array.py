@@ -50,8 +50,8 @@ def main(
     start_condition="",
     termination_str="",
     verbose=True,
-    resume_job_id: int = None,
-    resume_array_task_ids: int = None,
+    resume_job_id: str = None,
+    resume_array_task_ids: str = None,
 ):
     cmd_check_job_in_queue = "squeue -r -j {job_id}"
     cmd_check_job_array_in_queue = "squeue -r -j {job_id}_{array_task_id}"
@@ -77,7 +77,7 @@ def main(
         if resume_job_id is not None and resume_array_task_ids is not None:
             job_id = resume_job_id
             _from, _to = resume_array_task_ids.split(" ")
-            array_task_ids = list(range(_from, _to))
+            array_task_ids = [str(i) for i in list(range(int(_from), int(_to)))]
             resume_job_id = None
             resume_array_task_ids = None
         else:
@@ -158,7 +158,7 @@ def main(
                         termination_str,
                     ):
                         if verbose:
-                            print("Termination string found, finishing")
+                            print(f"Termination string found, finishing array task {array_task_id}")
                         array_task_ids_done.append(array_task_id)
                     else:
                         array_task_ids_to_restart.append(array_task_id)
@@ -173,7 +173,7 @@ def main(
                         termination_str,
                     ):
                         if verbose:
-                            print("Termination string found, finishing")
+                            print(f"Termination string found, finishing array task {array_task_id}")
                         array_task_ids_done.append(array_task_id)
                     else:
                         array_task_ids_to_restart.append(array_task_id)
@@ -217,6 +217,10 @@ def main(
                 if array_task_ids_to_restart:
                     break
                 else:
+                    if verbose:
+                        print(f"Task IDs:", array_task_ids)
+                        print(f"Task IDs done:", array_task_ids_done)
+                        print(f"Task IDs to restart:", array_task_ids_to_restart)
                     return
 
             time.sleep(check_interval_secs)
@@ -246,11 +250,11 @@ def get_job_id(s):
 
 
 if __name__ == "__main__":
-    # run(main)
-    main(
-        cmd="sbatch test_slurm_arrays.sbatch",
-        check_interval_secs=10,
-        output_file_template="slurm_logs/slurm-{job_id}_{array_task_id}.out",
-        termination_str="EXP",
-        verbose=True,
-    )
+    run(main)
+    # main(
+    #     cmd="sbatch test_slurm_arrays.sbatch",
+    #     check_interval_secs=10,
+    #     output_file_template="slurm_logs/slurm-{job_id}_{array_task_id}.out",
+    #     termination_str="EXP",
+    #     verbose=True,
+    # )
