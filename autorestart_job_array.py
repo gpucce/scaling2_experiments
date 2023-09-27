@@ -98,16 +98,16 @@ def main(
             ).decode()
             # get job id and all array task ids
             job_id = get_job_id(output)
-            array_task_ids = [
-                i[len(job_id) + 1 :]
-                for i in re.findall(
-                    f"{job_id}_\d+",
-                    check_output(
-                        cmd_check_job_in_queue.format(job_id=job_id), shell=True
-                    ).decode(),
-                )
-            ]
-            array_task_ids = [i for i in array_task_ids if i not in array_task_ids_done]
+            if not array_task_ids:
+                array_task_ids = [
+                    i[len(job_id) + 1 :]
+                    for i in re.findall(
+                        f"{job_id}_\d+",
+                        check_output(
+                            cmd_check_job_in_queue.format(job_id=job_id), shell=True
+                        ).decode(),
+                    )
+                ]
 
             # actually start the job if it wasn't meant to be on hold
             if "--hold" not in cmd:
