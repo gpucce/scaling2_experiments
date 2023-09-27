@@ -98,7 +98,7 @@ def main(
 
             # actually start the job if it wasn't meant to be on hold
             if "--hold" not in cmd:
-                call(f"scontrol release ${job_id}", shell=True)
+                call(f"scontrol release {job_id}", shell=True)
 
             if job_id is None:
                 if verbose:
@@ -211,10 +211,17 @@ def get_file_content(output_file):
 
 def get_job_id(s):
     try:
-        return re.search("Submitted batch job ([0-9_]+)", s).group(1)
+        return re.search("Submitted batch job ([0-9]+)", s).group(1)
     except Exception:
         return None
 
 
 if __name__ == "__main__":
-    run(main)
+    # run(main)
+    main(
+        cmd="sbatch test_slurm_arrays.sbatch",
+        check_interval_secs=30,
+        output_file_template="slurm_logs/{job_id}_{array_task_id}.out",
+        termination_str="EXP",
+        verbose=True,
+    )
