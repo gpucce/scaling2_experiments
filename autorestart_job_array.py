@@ -54,7 +54,7 @@ def main(
     resume_array_task_ids: int = None,
 ):
     cmd_check_job_in_queue = "squeue -r -j {job_id}"
-    cmd_check_job_array_in_queue = "squeue -j {job_id}_{array_task_id}"
+    cmd_check_job_array_in_queue = "squeue -r -j {job_id}_{array_task_id}"
     cmd_check_job_running = "squeue -j {job_id}_{array_task_id} -t R"
     array_task_ids_to_restart = []
     array_task_ids_done = []
@@ -87,18 +87,18 @@ def main(
                 shell=True,
             ).decode()
             # get job id and all array task ids
-            job_id = get_job_id(output).split("\n")[0].split("_")[0]
+            job_id = get_job_id(output)
             array_task_ids = [
                 i[len(job_id) + 1 :]
                 for i in re.findall(
-                    f"${job_id}_\d+", check_output(cmd_check_job_in_queue).decode()
+                    f"{job_id}_\d+", check_output(cmd_check_job_in_queue.format(job_id=job_id), shell=True).decode()
                 )
             ]
             array_task_ids = [i for i in array_task_ids if i not in array_task_ids_done]
 
             # actually start the job if it wasn't meant to be on hold
             if "--hold" not in cmd:
-                call(f"scontrol release ${job_id}")
+                call(f"scontrol release ${job_id}", shell=True)
 
             if job_id is None:
                 if verbose:
@@ -211,7 +211,7 @@ def get_file_content(output_file):
 
 def get_job_id(s):
     try:
-        return int(re.search("Submitted batch job ([0-9_]+)", s).group(1))
+        return re.search("Submitted batch job ([0-9_]+)", s).group(1)
     except Exception:
         return None
 

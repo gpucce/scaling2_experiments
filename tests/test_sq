@@ -1,0 +1,6 @@
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+         8518052_1   booster test_slu puccetti CF       0:18      1 jwb0127
+         8518052_2   booster test_slu puccetti CF       0:18      1 jwb0413
+         8518052_3   booster test_slu puccetti CF       0:18      1 jwb0415
+         8518052_4   booster test_slu puccetti CF       0:18      1 jwb0479
+         8518052_5   booster test_slu puccetti PD       0:00      1 (Priority)

@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --account=laionize
 #SBATCH --partition=booster
-#SBATCH --output=slurm_logs/test_slurm_arrays_TI_%K_JI_%J.out
+#SBATCH --output=slurm_logs/%J.out
 
 echo "SLURM_ARRAY_TASK_ID: " $SLURM_ARRAY_TASK_ID
 srun python -c "$(cat experiments_list | sed -n -e "${SLURM_ARRAY_TASK_ID}p")"
