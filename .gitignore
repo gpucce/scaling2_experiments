@@ -2,6 +2,7 @@ slurm_logs/
 sbatch_scripts/
 experiments/
 test_logs/
+outputs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
