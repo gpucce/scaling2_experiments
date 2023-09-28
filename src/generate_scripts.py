@@ -1,6 +1,4 @@
 from clize import run
-import pandas as pd
-import math
 from pathlib import Path
 from omegaconf import OmegaConf
 from .cfg_templates import Arch, Data, Experiment, SbatchConfig, ExperimentsConfig
