@@ -83,6 +83,7 @@ def main(
         else:
             # launch job on hold so to prevent immediate execution and get array ids
             if array_task_ids_to_restart:
+                array_task_ids_to_restart = list(set(array_task_ids_to_restart))
                 cmd = re.sub(
                     "#SBATCH --array.*\n",
                     "#SBATCH --array=" + ",".join(array_task_ids_to_restart) + "\n",
@@ -134,8 +135,6 @@ def main(
                 print(f"Task IDs to restart:", array_task_ids_to_restart)
 
             for array_task_id in array_task_ids:
-
-
                 if array_task_id in array_task_ids_done:
                     continue
 
@@ -223,7 +222,6 @@ def main(
                     return
 
             time.sleep(check_interval_secs)
-            continue
 
 
 

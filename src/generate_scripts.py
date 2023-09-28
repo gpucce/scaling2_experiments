@@ -61,6 +61,7 @@ def main(*, cfg, task="scripts", test=False):
 
             if experiment.data_done and experiment.model_done:
                 continue
+
             cmd = CMD_TEMPLATE.format(
                 LR = experiment.lr,
                 TRAIN_DATA = experiment.data_path,
@@ -74,7 +75,7 @@ def main(*, cfg, task="scripts", test=False):
                 GRAD_CHECKPOINTING = "--grad-checkpointing" if experiment.checkpointing else "",
                 PRECISION = experiment.get("precision", None),
                 WANDB_PROJECT_NAME = experiment.get("wand_project_name", None),
-                NAME = "model_{}_data_{}_size_{}".format(experiment.model_name, experiment.data_name, experiment.size),
+                RUN_NAME = "model_{}_data_{}_size_{}".format(experiment.model_name, experiment.data_name, experiment.size),
                 VAL_FREQUENCY = experiment.get("val_frequency", None),
                 IMAGENET_VAL_PATH = experiment.get("imagenet_val_path", None),
                 LOGS = experiment.get("logs", None),
@@ -94,7 +95,7 @@ def main(*, cfg, task="scripts", test=False):
         PARTITION = sbatch_cfg.partition,
         OUTPUT = sbatch_cfg.output,
         JOB_NAME = sbatch_cfg.job_name,
-        ARRAY = len(experiments) - 1
+        ARRAY = len(experiments)
     )
 
     if test:
@@ -105,7 +106,7 @@ def main(*, cfg, task="scripts", test=False):
             TIME = "00:01:00",
             NTASKS_PER_NODE = 1,
             CPUS_PER_TASK = 1,
-            PARTITION = "develbooster",
+            PARTITION = "develbooster", # specific to juwels booster
             OUTPUT = sbatch_cfg.output,
             JOB_NAME = sbatch_cfg.job_name,
             ARRAY = 16
@@ -126,61 +127,9 @@ def main(*, cfg, task="scripts", test=False):
             fd.write("echo")
             fd.write(cmd)
             fd.write(" >> test_logs/${SLURM_ARRAY_TASK_ID}_output.txt\n")
-        fd.write("\nMADEITTOTHEEND")
+        fd.write("\necho MADEITTOTHEEND")
 
 
-
-#     delta = 0
-#     act = pd.read_csv('clip_table_2.csv')
-#     act['vit'] = act.model.str.contains('ViT')
-#     act = act[act.vit]
-#     rows = []
-#     for arch_type in archs.keys():
-#         for arch_name, arch in arch_type.items():
-#             for dataset in datasets:
-#                 for data_name, data in dataset.items():
-
-#                     if data.resampled:
-#                         nb_epochs = (samples_seen) // (200e6)
-#                         data_size = int(samples_seen // nb_epochs)
-#                         nb_epochs = (samples_seen // data_size)
-#                     else:
-#                         data_size = data.size
-#                         nb_epochs1 = math.ceil(samples_seen / data.size)
-#                         nb_epochs2 = (samples_seen // data.size)
-#                         if abs(nb_epochs1 * data_size - samples_seen) < abs(nb_epochs2 * data_size - samples_seen):
-#                             nb_epochs = nb_epochs1
-#                         else:
-#                             nb_epochs = nb_epochs2
-
-#                 nb_nodes = arch.nodes
-#                 if target in ("boosterv2", "stability2v3"):
-#                     global_bs = 32768
-#                     arch.lr = 5e-4
-#                 else:
-#                     global_bs = 88_000
-#                 nb_nodes = math.ceil(global_bs / (arch.bs * gpus_per_node))
-#                 global_bs = arch.bs * gpus_per_node * nb_nodes
-#                 name = f"{arch.name}_{data.name}_{int(samples_seen/1e9)}b"
-#                 # print(name, global_bs, nb_nodes, samples_seen/1e9, data.name, arch.name, arch.bs, nb_epochs)
-#                 delta += abs(nb_epochs*data_size-samples_seen)/1e6
-#                 script = tpl.format(
-#                     ACCOUNT=account,
-#                     NODES=nb_nodes,
-#                     NAME=name,
-#                     DATA=data.path,
-#                     RESAMPLED=data.resampled_str,
-#                     WARMUP=arch.warmup,
-#                     MODEL=str(arch),
-#                     BATCH_SIZE=arch.bs,
-#                     EPOCHS=nb_epochs,
-#                     NUM_SAMPLES=data_size,
-#                     LR=arch.lr,
-#                 )
-#                 if task == "scripts":
-#                     print(name, nb_epochs * data_size, samples_seen,  abs(nb_epochs*data_size-samples_seen)/1e6  )
-#                     with open(target + "/" + name+".sbatch", "w") as fd:
-#                         fd.write(script)
 #                 elif task == "model_list":
 #                     target_name = f"Model-{arch.name.replace('ViT-','')}_Data-{data.name}_Samples-{round(samples_seen/1e9)}B_lr-1e-3_bs-{int(global_bs//1e3)}k.pt"
 #                     row = {}
@@ -196,5 +145,4 @@ def main(*, cfg, task="scripts", test=False):
 #                     print(f"{arch.name},{target_name}")
 #                 else:
 #                     raise ValueError(task)
-# run(main)
-main(cfg="experiments.yaml", test=True)
+# main(cfg="experiments.yaml", test=True)
