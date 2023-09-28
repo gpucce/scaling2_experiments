@@ -3,7 +3,7 @@ sbatch_config:
   gpus: 4
   account: laionize
   time: "00:10:00"
-  ntasks_per_node: 1
+  ntasks_per_node: 1 # generally prefer clip_benchmark distributed
   cpus_per_task: 6
   partition: booster
   output: "slurm_logs/slurm-%A_%a.out"

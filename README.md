@@ -46,3 +46,9 @@ python -m src.autorestart_job_array \
 > sbatch_config:
 >   output: slurm-%A_%a.log
 > ```
+
+
+## TODO
+- [ ] Add option to ignore experiments
+- [ ] More testing
+- [ ] Improve resume
