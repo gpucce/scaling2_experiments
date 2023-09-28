@@ -1,4 +1,4 @@
-# scaling2
+# Slurm Experiments Runner
 
 Create a vitrualenv and install the tiny requirements
 ```
