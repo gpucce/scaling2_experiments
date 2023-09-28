@@ -32,10 +32,6 @@ SBATCH_TEMPLATE = """#!/bin/bash
 #SBATCH --output={OUTPUT}
 #SBATCH --job-name={JOB_NAME}
 #SBATCH --array=1-{ARRAY}%{JOBS_AT_ONCE}
-
-eval "$(/p/home/jusers/puccetti1/juwels/puccetti1/miniconda3/bin/conda shell.bash hook)" # init conda
-conda activate open_clip
-export CUDA_VISIBLE_DEVICES="0,1,2,3"
 """ # %4 max number of jobs at the same time
 
 
@@ -139,20 +135,26 @@ def main(*, cfg, task="scripts", test=False):
     Path(sbatch_cfg.sbatch_script_file_path).parent.mkdir(parents=True, exist_ok=True)
     with open(sbatch_cfg.sbatch_script_file_path, "w") as fd:
         fd.write(tpl)
-        fd.write("\n\n\n")
-        cmd = "ID=$(($SLURM_ARRAY_TASK_ID * $SLURM_NTASKS_PER_NODE + $SLURM_LOCALID))\n"
-        cmd += "cmd=\"$(cat {exp_list} | sed -n -e \"${{ID}}p\")\"\n".format(exp_list=sbatch_cfg.experiments_list_file_path)
+        fd.write("\n\n")
+        for i in sbatch_cfg.extra_preamble:
+            fd.write(i)
+            fd.write("\n")
+
         if not test:
+            fd.write("\n\n")
+            cmd = "ID=$(($SLURM_ARRAY_TASK_ID * $SLURM_NTASKS_PER_NODE + $SLURM_LOCALID))\n"
+            cmd += "cmd=\"$(cat {exp_list} | sed -n -e \"${{ID}}p\")\"\n".format(exp_list=sbatch_cfg.experiments_list_file_path)
             fd.write(cmd)
             fd.write("srun --cpu_bind=none,v --accel-bind=gn $cmd\n")
         else:
             fd.write("mkdir -p test_logs\n")
             fd.write("echo")
+            cmd = "\"$(cat {exp_list} | sed -n -e \"${{ID}}p\")\"\n".format(exp_list=sbatch_cfg.experiments_list_file_path)
             fd.write(cmd)
             fd.write(" >> test_logs/${SLURM_ARRAY_TASK_ID}_output.txt\n")
-        fd.write("\necho MADEITTOTHEEND")
 
 
+# older version, keep for now
 #                 elif task == "model_list":
 #                     target_name = f"Model-{arch.name.replace('ViT-','')}_Data-{data.name}_Samples-{round(samples_seen/1e9)}B_lr-1e-3_bs-{int(global_bs//1e3)}k.pt"
 #                     row = {}
@@ -169,3 +171,6 @@ def main(*, cfg, task="scripts", test=False):
 #                 else:
 #                     raise ValueError(task)
 # main(cfg="experiments.yaml", test=True)
+
+if __name__ == "__main__":
+    run(main)

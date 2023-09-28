@@ -54,18 +54,19 @@ class Experiment:
 
 @dataclass
 class SbatchConfig:
-    nodes: int
-    gpus: int
     account: str
-    time: str
-    ntasks_per_node: int
-    cpus_per_task: int
     partition: str
-    output: str
-    job_name: str
-    experiments_list_file_path: str
-    sbatch_script_file_path: str
+    nodes: int = 1
+    gpus: int = 1
+    time: str = "00:30:00"
+    ntasks_per_node: int = 1
+    cpus_per_task: int = 6
+    output: str = "./output"
+    job_name: str = "automated_experiments"
+    experiments_list_file_path: str = "experiments_list.txt"
+    sbatch_script_file_path: str = "./sbatch_script.sbatch"
     jobs_at_once: int = 4
+    extra_preamble: List[str] = None
 
 
 @dataclass
