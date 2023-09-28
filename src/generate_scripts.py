@@ -7,7 +7,7 @@ from .cfg_templates import Arch, Data, Experiment, SbatchConfig, ExperimentsConf
 
 
 TRAIN_CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --name={RUN_NAME} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
-VAL_CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn clip_benchmark eval --model {MODEL_NAME} --pretrained {PRETRAINED_PATH} --dataset {DATASET} --dataset_root {DATA_PATH} --output {OUTPUT_PATH} --batch_size {BATCH_SIZE}"""
+VAL_CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn clip_benchmark eval --model={MODEL_NAME} --pretrained={PRETRAINED_PATH} --dataset={DATASET} --dataset_root={DATA_PATH} --output={OUTPUT_PATH} --batch_size={BATCH_SIZE}"""
 
 train_cmd_template_kwargs = [
     "TRAIN_DATA", "TRAIN_NUM_SAMPLES", "LOGS", "WARMUP",
@@ -43,7 +43,7 @@ sbatch_tempalte_kwargs = [
     "ARRAY"
 ]
 
-def main(*, cfg, task="scripts", test=False):
+def main(*, cfg, task="scripts", test=False, stage="train"):
 
     cfg = OmegaConf.load(cfg)
     # assert "models" in cfg
@@ -69,27 +69,35 @@ def main(*, cfg, task="scripts", test=False):
     with open(sbatch_cfg.experiments_list_file_path, "w") as fd:
         for experiment in experiments:
 
-            if experiment.data_done and experiment.model_done:
-                continue
+            if experiment.stage == "train":
+                cmd_template = TRAIN_CMD_TEMPLATE.format(
+                    LR = experiment.lr,
+                    TRAIN_DATA = experiment.data_path,
+                    TRAIN_NUM_SAMPLES = experiment.size,
+                    WARMUP = experiment.warmup,
+                    BATCH_SIZE = experiment.batch_size,
+                    EPOCHS = experiment.epochs,
+                    MODEL = experiment.model_name,
+                    DATASET_RESAMPLED = "--dataset-resampled" if experiment.resampled else "",
+                    SEED = experiment.get("seed", None),
+                    GRAD_CHECKPOINTING = "--grad-checkpointing" if experiment.checkpointing else "",
+                    PRECISION = experiment.get("precision", None),
+                    WANDB_PROJECT_NAME = experiment.get("wand_project_name", None),
+                    RUN_NAME = "model_{}_data_{}_size_{}".format(experiment.model_name, experiment.data_name, experiment.size),
+                    VAL_FREQUENCY = experiment.get("val_frequency", None),
+                    IMAGENET_VAL_PATH = experiment.get("imagenet_val_path", None),
+                    LOGS = experiment.get("logs", None),
+                )
 
-            cmd = TRAIN_CMD_TEMPLATE.format(
-                LR = experiment.lr,
-                TRAIN_DATA = experiment.data_path,
-                TRAIN_NUM_SAMPLES = experiment.size,
-                WARMUP = experiment.warmup,
-                BATCH_SIZE = experiment.batch_size,
-                EPOCHS = experiment.epochs,
-                MODEL = experiment.model_name,
-                DATASET_RESAMPLED = "--dataset-resampled" if experiment.resampled else "",
-                SEED = experiment.get("seed", None),
-                GRAD_CHECKPOINTING = "--grad-checkpointing" if experiment.checkpointing else "",
-                PRECISION = experiment.get("precision", None),
-                WANDB_PROJECT_NAME = experiment.get("wand_project_name", None),
-                RUN_NAME = "model_{}_data_{}_size_{}".format(experiment.model_name, experiment.data_name, experiment.size),
-                VAL_FREQUENCY = experiment.get("val_frequency", None),
-                IMAGENET_VAL_PATH = experiment.get("imagenet_val_path", None),
-                LOGS = experiment.get("logs", None),
-            )
+            elif experiment.stage == "val":
+                cmd = VAL_CMD_TEMPLATE.format(
+                    BATCH_SIZE = experiment.batch_size,
+                    DATA_PATH = experiment.data_path,
+                    OUTPUT_PATH = experiment.logs,
+                    DATASET = experiment.data_name,
+                    PRETRAINED_PATH = experiment.pretrained_path,
+                    MODEL_NAME = experiment.model_name,
+                )
 
             fd.write(cmd)
             fd.write("\n")
