@@ -85,8 +85,10 @@ def main(
 
             if array_task_ids_to_restart:
                 array_task_ids_to_restart = sorted(array_task_ids_to_restart, key=int)
-                cmd = re.sub("^sbatch( --array=[,\d]+)?", "sbatch --array=" + ",".join(array_task_ids_to_restart), cmd)
+                cmd = re.sub("^sbatch( --array=[,\d-]+)?", "sbatch --array=" + ",".join(array_task_ids_to_restart), cmd)
                 array_task_ids_to_restart = []
+                if verbose:
+                    print("Relaunching job with array ids:", cmd)
 
             output = check_output(
                 cmd.replace("sbatch ", "sbatch --hold ")

@@ -10,6 +10,7 @@ sbatch_config:
   partition: booster
   output: "slurm_logs/slurm-%A_%a.out"
   job_name: scaling2
+  jobs_at_once: 4
   experiments_list_file_path: "./experiments/experiments_list.txt"
   sbatch_script_file_path: "./sbatch_scripts/experiment_sbatch_script.sbatch"
 

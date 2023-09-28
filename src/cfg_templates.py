@@ -60,6 +60,7 @@ class SbatchConfig:
     job_name: str
     experiments_list_file_path: str
     sbatch_script_file_path: str
+    jobs_at_once: int
 
 
 @dataclass

@@ -7,14 +7,18 @@ from .cfg_templates import Arch, Data, Experiment, SbatchConfig, ExperimentsConf
 
 
 TRAIN_CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --name={RUN_NAME} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
-VAL_CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --name={RUN_NAME} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
-
+VAL_CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn clip_benchmark eval --model {MODEL_NAME} --pretrained {PRETRAINED_PATH} --dataset {DATASET} --dataset_root {DATA_PATH} --output {OUTPUT_PATH} --batch_size {BATCH_SIZE}"""
 
 train_cmd_template_kwargs = [
     "TRAIN_DATA", "TRAIN_NUM_SAMPLES", "LOGS", "WARMUP",
     "BATCH_SIZE", "EPOCHS", "MODEL", "SEED", "GRAD_CHECKPOINTING",
     "LR", "PRECISION", "WANDB_PROJECT_NAME", "VAL_FREQUENCY",
-    "IMAGENET_VAL_PATH", "DATASET_RESAMPLED", "RUN_NAME"
+    "IMAGENET_VAL_PATH", "DATASET_RESAMPLED", "RUN_NAME",
+]
+
+val_cmd_template_kwargs = [
+    "BATCH_SIZE", "DATA_PATH", "OUTPUT_PATH", "DATASET",
+    "PRETRAINED_PATH", "MODEL_NAME"
 ]
 
 SBATCH_TEMPLATE = """#!/bin/bash
@@ -27,14 +31,16 @@ SBATCH_TEMPLATE = """#!/bin/bash
 #SBATCH --partition={PARTITION}
 #SBATCH --output={OUTPUT}
 #SBATCH --job-name={JOB_NAME}
-#SBATCH --array=1-{ARRAY}%4
+#SBATCH --array=1-{ARRAY}%{JOBS_AT_ONCE}
 """ # %4 max number of jobs at the same time
 
 
 
 sbatch_tempalte_kwargs = [
-    "NODES", "GPUS", "ACCOUNT", "TIME", "NTASKS_PER_NODE",
-    "CPUS_PER_TASK", "PARTITION", "OUTPUT", "JOB_NAME", "ARRAY"
+    "NODES", "GPUS", "ACCOUNT", "TIME",
+    "NTASKS_PER_NODE", "CPUS_PER_TASK",
+    "PARTITION", "OUTPUT", "JOB_NAME",
+    "ARRAY"
 ]
 
 def main(*, cfg, task="scripts", test=False):
@@ -99,7 +105,8 @@ def main(*, cfg, task="scripts", test=False):
         PARTITION = sbatch_cfg.partition,
         OUTPUT = sbatch_cfg.output,
         JOB_NAME = sbatch_cfg.job_name,
-        ARRAY = len(experiments)
+        TASKS_AT_ONCE= sbatch_cfg.jobs_at_once,
+        ARRAY = len(experiments),
     )
 
     if test:
