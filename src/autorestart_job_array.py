@@ -82,13 +82,10 @@ def main(
             resume_array_task_ids = None
         else:
             # launch job on hold so to prevent immediate execution and get array ids
+
             if array_task_ids_to_restart:
-                array_task_ids_to_restart = list(set(array_task_ids_to_restart))
-                cmd = re.sub(
-                    "#SBATCH --array.*\n",
-                    "#SBATCH --array=" + ",".join(array_task_ids_to_restart) + "\n",
-                    cmd,
-                )
+                array_task_ids_to_restart = sorted(array_task_ids_to_restart, key=int)
+                cmd = re.sub("^sbatch( --array=[,\d]+)?", "sbatch --array=" + ",".join(array_task_ids_to_restart), cmd)
                 array_task_ids_to_restart = []
 
             output = check_output(
@@ -132,7 +129,7 @@ def main(
             if verbose:
                 print(f"Task IDs:", array_task_ids)
                 print(f"Task IDs done:", array_task_ids_done)
-                print(f"Task IDs to restart:", array_task_ids_to_restart)
+                print(f"Task IDs to restart:", sorted(array_task_ids_to_restart, key=int))
 
             for array_task_id in array_task_ids:
                 if array_task_id in array_task_ids_done:
@@ -157,10 +154,13 @@ def main(
                         termination_str,
                     ):
                         if verbose:
-                            print(f"Termination string found, finishing array task {array_task_id}")
+                            print(
+                                f"Termination string found, finishing array task {array_task_id}"
+                            )
                         array_task_ids_done.append(array_task_id)
                     else:
-                        array_task_ids_to_restart.append(array_task_id)
+                        if array_task_id not in array_task_ids_to_restart:
+                            array_task_ids_to_restart.append(array_task_id)
                     continue
 
                 # if job is not present in the queue, relaunch it directly, except if termination string is found
@@ -172,10 +172,13 @@ def main(
                         termination_str,
                     ):
                         if verbose:
-                            print(f"Termination string found, finishing array task {array_task_id}")
+                            print(
+                                f"Termination string found, finishing array task {array_task_id}"
+                            )
                         array_task_ids_done.append(array_task_id)
                     else:
-                        array_task_ids_to_restart.append(array_task_id)
+                        if array_task_id not in array_task_ids_to_restart:
+                            array_task_ids_to_restart.append(array_task_id)
                     continue
 
                 # Check first if job is specifically on a running state (to avoid the case where it is on pending state etc)
@@ -211,20 +214,19 @@ def main(
                         call(f"scancel {job_id}_{array_task_id}", shell=True)
                         array_task_ids_to_restart.append(array_task_id)
 
-            if set(array_task_ids_to_restart + array_task_ids_done) == set(array_task_ids):
+            if set(array_task_ids_to_restart + array_task_ids_done) == set(
+                array_task_ids
+            ):
                 if array_task_ids_to_restart:
                     break
                 else:
                     if verbose:
                         print(f"Task IDs:", array_task_ids)
                         print(f"Task IDs done:", array_task_ids_done)
-                        print(f"Task IDs to restart:", array_task_ids_to_restart)
+                        print(f"Task IDs to restart:", sorted(array_task_ids_to_restart, key=int))
                     return
 
             time.sleep(check_interval_secs)
-
-
-
 
 
 def check_if_done(logfile, termination_str):

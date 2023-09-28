@@ -1,6 +1,6 @@
-# scaling2.0
+# scaling2
 
-To run multiple experiments you have to create an `experiments.yaml` file with a list of `datasets` and `models` see the [cfg_templates.py](./src/cfg_templates.py) file to know the required fields.
+To run multiple experiments you have to create an `experiments.yaml` file with a list of `datasets` and `models` see the [cfg_templates.py](./src/cfg_templates.py) file to know the required fields. One can check [this config](./configs/experiments.yaml) for an example.
 
 Once that is in place, one should run
 ```
@@ -15,8 +15,8 @@ sbatch_config:
   ...
 ```
 
-this will create to files:
- - The experiments_list file `exps_list.txt` holds
+this will create two files:
+ - An experiments list file `exps_list.txt` which holds
 all the commands needed to run the experiments;
  - A sbatch script file `sbatch_script.sbatch`, that will start a slurm job array with as many experiments as there are pairs of datasets/models in `experiments.yaml` file.
 
@@ -29,7 +29,13 @@ python -m src.autorestart_job_array \
     --termination-str MADEITTOTHEEND \
     --verbose 1
 ```
-
-make sure that `--output-file-template <this_path>` matches `sbatch_config.output`.
-
-
+> NOTE: make sure that `--output-file-template <this_path>` matches `sbatch_config.output: <this_path>` . To do this one needs to change `{job_id} -> %A and {array_task_id} -> %a` so for using
+> ```
+> --output-file-template slurm-{job_id}_{array_task_id}.log
+> ```
+> in the config one will need
+> ```
+> ...
+> sbatch_config:
+>   output: slurm-%A_%a.log
+> ```

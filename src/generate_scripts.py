@@ -3,12 +3,14 @@ import pandas as pd
 import math
 from pathlib import Path
 from omegaconf import OmegaConf
-from cfg_templates import Arch, Data, Experiment, SbatchConfig, ExperimentsConfig
+from .cfg_templates import Arch, Data, Experiment, SbatchConfig, ExperimentsConfig
 
 
-CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --name={RUN_NAME} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
+TRAIN_CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --name={RUN_NAME} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
+VAL_CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --name={RUN_NAME} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
 
-cmd_template_kwargs = [
+
+train_cmd_template_kwargs = [
     "TRAIN_DATA", "TRAIN_NUM_SAMPLES", "LOGS", "WARMUP",
     "BATCH_SIZE", "EPOCHS", "MODEL", "SEED", "GRAD_CHECKPOINTING",
     "LR", "PRECISION", "WANDB_PROJECT_NAME", "VAL_FREQUENCY",
@@ -27,6 +29,8 @@ SBATCH_TEMPLATE = """#!/bin/bash
 #SBATCH --job-name={JOB_NAME}
 #SBATCH --array=1-{ARRAY}%4
 """ # %4 max number of jobs at the same time
+
+
 
 sbatch_tempalte_kwargs = [
     "NODES", "GPUS", "ACCOUNT", "TIME", "NTASKS_PER_NODE",
@@ -62,7 +66,7 @@ def main(*, cfg, task="scripts", test=False):
             if experiment.data_done and experiment.model_done:
                 continue
 
-            cmd = CMD_TEMPLATE.format(
+            cmd = TRAIN_CMD_TEMPLATE.format(
                 LR = experiment.lr,
                 TRAIN_DATA = experiment.data_path,
                 TRAIN_NUM_SAMPLES = experiment.size,
@@ -109,7 +113,7 @@ def main(*, cfg, task="scripts", test=False):
             PARTITION = "develbooster", # specific to juwels booster
             OUTPUT = sbatch_cfg.output,
             JOB_NAME = sbatch_cfg.job_name,
-            ARRAY = 16
+            ARRAY = 6
         )
 
     Path(sbatch_cfg.sbatch_script_file_path).parent.mkdir(parents=True, exist_ok=True)
