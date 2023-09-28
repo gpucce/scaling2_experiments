@@ -1,0 +1,165 @@
+
+
+sbatch_config:
+  nodes: 64
+  gpus: 4
+  account: laionize
+  time: "24:00:00"
+  ntasks_per_node: 4
+  cpus_per_task: 6
+  partition: booster
+  output: "slurm_logs/slurm-%A_%a.out"
+  job_name: scaling2
+  experiments_list_file_path: "./experiments/experiments_list.txt"
+  sbatch_script_file_path: "./sbatch_scripts/experiment_sbatch_script.sbatch"
+
+datasets:
+  -
+    data_name: laion2b_1_28M
+    data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
+    size: 1356460
+    epochs: 1
+    resampled: true
+  -
+    data_name: laion2b_12_8M
+    data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
+    size: 13564607
+    epochs: 1
+    resampled: true
+  -
+    data_name: laion2b_128M
+    data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
+    size: 135646078
+    epochs: 1
+    resampled: true
+  -
+    data_name: laion2b_1_28B
+    data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
+    size: 135646078
+    epochs: 1
+    resampled: true
+  -
+    data_name: laion2b_3B
+    data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
+    size: 135646078
+    epochs: 24
+    resampled: true
+  -
+    data_name: laion2b_13B
+    data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
+    size: 135646078
+    epochs: 97
+    resampled: true
+  -
+    data_name: laion2b_34B
+    data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
+    size: 135646078
+    epochs: 252
+    resampled: true
+  -
+    data_name: datacomp_1_28M
+    data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
+    size: 1356460
+    epochs: 1
+    resampled: true
+  -
+    data_name: datacomp_12_8M
+    data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
+    size: 13564607
+    epochs: 1
+    resampled: true
+  -
+    data_name: datacomp_128M
+    data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
+    size: 135646078
+    epochs: 1
+    resampled: true
+  -
+    data_name: datacomp_1_28B
+    data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
+    size: 1356460789
+    epochs: 1
+    resampled: true
+  -
+    data_name: datacomp_3B
+    data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
+    size: 135646078
+    epochs: 24
+    resampled: true
+  -
+    data_name: datacomp_13B
+    data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
+    size: 135646078
+    epochs: 97
+    resampled: true
+  -
+    data_name: datacomp_34B
+    data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
+    size: 135646078
+    epochs: 252
+    resampled: true
+
+models:
+  -
+    model_name: "ViT-B-32"
+    batch_size: 352
+    warmup: 10_000
+    lr: 1e-3
+    nodes: 64
+    checkpointing: true
+  -
+    model_name: "ViT-B-16"
+    batch_size: 352
+    warmup: 10_000
+    lr: 1e-3
+    nodes: 64
+    checkpointing: True
+  -
+    model_name: "ViT-L-14"
+    batch_size: 352
+    warmup: 10_000
+    lr: 1e-3
+    nodes: 64
+    checkpointing: True
+  -
+    model_name: "mammut_ViT-B-32"
+    batch_size: 352
+    warmup: 10_000
+    lr: 1e-3
+    nodes: 64
+    checkpointing: true
+  -
+    model_name: "mammut_ViT-B-16"
+    batch_size: 352
+    warmup: 10_000
+    lr: 1e-3
+    nodes: 64
+    checkpointing: true
+  -
+    model_name: "mammut_ViT-L-14"
+    batch_size: 352
+    warmup: 10_000
+    lr: 1e-3
+    nodes: 64
+    checkpointing: true
+  -
+   model_name: "coca_ViT-B-32"
+   batch_size: 352
+   warmup: 10_000
+   lr: 1e-3
+   nodes: 64
+   checkpointing: true
+  -
+   model_name: "coca_ViT-B-16"
+   batch_size: 352
+   warmup: 10_000
+   lr: 1e-3
+   nodes: 64
+   checkpointing: true
+  -
+   model_name: "coca_ViT-L-14"
+   batch_size: 352
+   warmup: 10_000
+   lr: 1e-3
+   nodes: 64
+   checkpointing: true
