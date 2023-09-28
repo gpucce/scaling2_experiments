@@ -177,7 +177,7 @@ def main(
                         array_task_ids_done.append(array_task_id)
                     else:
                         array_task_ids_to_restart.append(array_task_id)
-                        continue
+                    continue
 
                 # Check first if job is specifically on a running state (to avoid the case where it is on pending state etc)
                 data = check_output(
@@ -211,7 +211,6 @@ def main(
                             print("Job frozen, stopping the job then restarting it")
                         call(f"scancel {job_id}_{array_task_id}", shell=True)
                         array_task_ids_to_restart.append(array_task_id)
-                        continue
 
             if set(array_task_ids_to_restart + array_task_ids_done) == set(array_task_ids):
                 if array_task_ids_to_restart:

@@ -2,45 +2,66 @@ from clize import run
 import pandas as pd
 import math
 from pathlib import Path
-import omegaconf
-from cfg_templates import Arch, Data, Experiment
+from omegaconf import OmegaConf
+from cfg_templates import Arch, Data, Experiment, SbatchConfig, ExperimentsConfig
 
 
-TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
+CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --name={RUN_NAME} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
 
-template_kwargs = [
+cmd_template_kwargs = [
     "TRAIN_DATA", "TRAIN_NUM_SAMPLES", "LOGS", "WARMUP",
     "BATCH_SIZE", "EPOCHS", "MODEL", "SEED", "GRAD_CHECKPOINTING",
     "LR", "PRECISION", "WANDB_PROJECT_NAME", "VAL_FREQUENCY",
-    "IMAGENET_VAL_PATH", "DATASET_RESAMPLED"
+    "IMAGENET_VAL_PATH", "DATASET_RESAMPLED", "RUN_NAME"
 ]
 
-def main(*, cfg, task="scripts"):
+SBATCH_TEMPLATE = """#!/bin/bash
+#SBATCH --nodes={NODES}
+#SBATCH --gpus-per-node={GPUS}
+#SBATCH --account={ACCOUNT}
+#SBATCH --time={TIME}
+#SBATCH --ntasks-per-node={NTASKS_PER_NODE}
+#SBATCH --cpus-per-task={CPUS_PER_TASK}
+#SBATCH --partition={PARTITION}
+#SBATCH --output={OUTPUT}
+#SBATCH --job-name={JOB_NAME}
+#SBATCH --array=1-{ARRAY}%4
+""" # %4 max number of jobs at the same time
 
-    cfg = omegaconf.OmegaConf.load(cfg)
-    assert "models" in cfg
-    assert "datasets" in cfg
+sbatch_tempalte_kwargs = [
+    "NODES", "GPUS", "ACCOUNT", "TIME", "NTASKS_PER_NODE",
+    "CPUS_PER_TASK", "PARTITION", "OUTPUT", "JOB_NAME", "ARRAY"
+]
+
+def main(*, cfg, task="scripts", test=False):
+
+    cfg = OmegaConf.load(cfg)
+    # assert "models" in cfg
+    # assert "datasets" in cfg
+    # assert ""
+    cfg = OmegaConf.structured(ExperimentsConfig(**cfg))
 
     experiments = []
     for model in cfg.models:
         for dataset in cfg.datasets:
-            model_cfg = omegaconf.OmegaConf.structured(Arch(**model))
-            dataset_cfg = omegaconf.OmegaConf.structured(Data(**dataset))
+            model_cfg = OmegaConf.structured(Arch(**model))
+            dataset_cfg = OmegaConf.structured(Data(**dataset))
 
             experiments.append(
-                omegaconf.OmegaConf.structured(
+                OmegaConf.structured(
                     Experiment(**model_cfg, **dataset_cfg)
                 )
             )
 
-    Path(cfg.experiments_list_file).parent.mkdir(parents=True, exist_ok=True)
-    with open(cfg.experiments_list_file, "w") as fd:
+    sbatch_cfg = OmegaConf.structured(SbatchConfig(**cfg.sbatch_config))
+
+    Path(sbatch_cfg.experiments_list_file_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(sbatch_cfg.experiments_list_file_path, "w") as fd:
         for experiment in experiments:
 
             if experiment.data_done and experiment.model_done:
                 continue
-
-            cmd = TEMPLATE.format(
+            cmd = CMD_TEMPLATE.format(
                 LR = experiment.lr,
                 TRAIN_DATA = experiment.data_path,
                 TRAIN_NUM_SAMPLES = experiment.size,
@@ -53,22 +74,61 @@ def main(*, cfg, task="scripts"):
                 GRAD_CHECKPOINTING = "--grad-checkpointing" if experiment.checkpointing else "",
                 PRECISION = experiment.get("precision", None),
                 WANDB_PROJECT_NAME = experiment.get("wand_project_name", None),
+                NAME = "model_{}_data_{}_size_{}".format(experiment.model_name, experiment.data_name, experiment.size),
                 VAL_FREQUENCY = experiment.get("val_frequency", None),
                 IMAGENET_VAL_PATH = experiment.get("imagenet_val_path", None),
                 LOGS = experiment.get("logs", None),
             )
 
             fd.write(cmd)
+            fd.write("\n")
 
-    with open(cfg.sbatch_script_template_path) as fd:
-        tpl = fd.read()
 
-    Path(cfg.sbatch_script_path).parent.mkdir(parents=True, exist_ok=True)
-    with open(cfg.sbatch_script_path, "w") as fd:
+    tpl = SBATCH_TEMPLATE.format(
+        NODES = sbatch_cfg.nodes,
+        GPUS = sbatch_cfg.gpus,
+        ACCOUNT = sbatch_cfg.account,
+        TIME = sbatch_cfg.time,
+        NTASKS_PER_NODE = sbatch_cfg.ntasks_per_node,
+        CPUS_PER_TASK = sbatch_cfg.cpus_per_task,
+        PARTITION = sbatch_cfg.partition,
+        OUTPUT = sbatch_cfg.output,
+        JOB_NAME = sbatch_cfg.job_name,
+        ARRAY = len(experiments) - 1
+    )
+
+    if test:
+        tpl = SBATCH_TEMPLATE.format(
+            NODES = 1,
+            GPUS = 1,
+            ACCOUNT = sbatch_cfg.account,
+            TIME = "00:01:00",
+            NTASKS_PER_NODE = 1,
+            CPUS_PER_TASK = 1,
+            PARTITION = "develbooster",
+            OUTPUT = sbatch_cfg.output,
+            JOB_NAME = sbatch_cfg.job_name,
+            ARRAY = 16
+        )
+
+    Path(sbatch_cfg.sbatch_script_file_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(sbatch_cfg.sbatch_script_file_path, "w") as fd:
         fd.write(tpl)
-        fd.write("\n")
-        fd.write("srun --cpu_bind=none,v --accel-bind=gn python -u")
-        fd.write(" \"$(cat {exp_list} | sed -n -p SLURM_ARRAY_TASK_IDp)\"".format(exp_list=cfg.experiments_list_file))
+        fd.write("\n\n\n")
+
+        cmd = " \"$(cat {exp_list} | sed -n -e SLURM_ARRAY_TASK_IDp)\"".format(exp_list=sbatch_cfg.experiments_list_file_path)
+        cmd = cmd.replace("SLURM_ARRAY_TASK_IDp", "\"${SLURM_ARRAY_TASK_ID}p\"")
+        if not test:
+            fd.write("srun --cpu_bind=none,v --accel-bind=gn python -u")
+            fd.write(cmd)
+        else:
+            fd.write("mkdir -p test_logs\n")
+            fd.write("echo")
+            fd.write(cmd)
+            fd.write(" >> test_logs/${SLURM_ARRAY_TASK_ID}_output.txt\n")
+        fd.write("\nMADEITTOTHEEND")
+
+
 
 #     delta = 0
 #     act = pd.read_csv('clip_table_2.csv')
@@ -137,4 +197,4 @@ def main(*, cfg, task="scripts"):
 #                 else:
 #                     raise ValueError(task)
 # run(main)
-main(cfg="experiments.yaml")
+main(cfg="experiments.yaml", test=True)

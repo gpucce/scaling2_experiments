@@ -1,5 +1,0 @@
-import os; v=os.environ['SLURM_ARRAY_TASK_ID']; print(f"{v}, EXP 1")
-import os; v=os.environ['SLURM_ARRAY_TASK_ID']; print(f"{v}, EXP 2")
-import os; v=os.environ['SLURM_ARRAY_TASK_ID']; print(f"{v}, EXP 3")
-import os; v=os.environ['SLURM_ARRAY_TASK_ID']; print(f"{v}, EXP 4")
-import os; v=os.environ['SLURM_ARRAY_TASK_ID']; print(f"{v}, EXP 5")

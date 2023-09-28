@@ -1,7 +1,18 @@
 
-sbatch_script_template_path: "./template_sbatch_script"
-experiments_list_file: "./experiments/experiments_list"
-sbatch_script_path: "./sbatch_scripts/experiment_sbatch_script.sbatch"
+
+sbatch_config:
+  nodes: 64
+  gpus: 4
+  account: laionize
+  time: "24:00:00"
+  ntasks_per_node: 4
+  cpus_per_task: 6
+  partition: booster
+  output: "slurm_logs/slurm-%A_%a.out"
+  job_name: scaling2
+  experiments_list_file_path: "./experiments/experiments_list.txt"
+  sbatch_script_file_path: "./sbatch_scripts/experiment_sbatch_script.sbatch"
+
 datasets:
   -
     data_name: laion2b_1_28M
