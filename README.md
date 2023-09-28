@@ -4,7 +4,7 @@ To run multiple experiments you have to create an `experiments.yaml` file with a
 
 Once that is in place, one should run
 ```
-python -m src.generate_scripts --cfg experiments.yaml
+python -m src.generate_scripts --cfg val_experiments.yaml
 ```
 Let us assume that in `experiments.yaml` one has set the following
 ```

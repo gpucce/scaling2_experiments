@@ -8,7 +8,7 @@ sbatch_config:
   partition: booster
   output: "slurm_logs/slurm-%A_%a.out"
   job_name: scaling2
-  jobs_at_once: 4
+  jobs_at_once: 4 # even if the array has more, no more than jobs_at_once will be started
   experiments_list_file_path: "./experiments/val_experiments_list.txt"
   sbatch_script_file_path: "./sbatch_scripts/val_experiment_sbatch_script.sbatch"
   extra_preamble: # this strings will get copied in the sbatch scripts as they are
@@ -21,10 +21,12 @@ datasets:
     task: "zeroshot_retrieval"
     data_name: "mscoco_captions"
     data_path: "/p/home/jusers/puccetti1/juwels/puccetti1/open_clip/data/coco_data_2014"
+    distributed: true
   -
     task: "zeroshot_classification"
     data_name: "imagenet1k"
     data_path: "/p/home/jusers/puccetti1/juwels/puccetti1/open_clip/data/imagenet1k"
+    distributed: true
 
 models:
   -

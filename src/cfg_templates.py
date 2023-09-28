@@ -12,6 +12,7 @@ class Data:
     imagenet_val_path: Optional[str] = None
     val_frequency: Optional[int] = None
     task: Optional[str] = None
+    distributed: bool = True
 
 @dataclass
 class Arch:
@@ -48,9 +49,10 @@ class Experiment:
     imagenet_val_path: Optional[str]
     logs: Optional[str]
     val_frequency: Optional[int]
-    pretrained_path: Optional[str] = None
-    task: Optional[str] = None
-    stage: Optional[str] = "train"
+    pretrained_path: Optional[str]
+    task: Optional[str]
+    stage: Optional[str]
+    distributed: bool
 
 @dataclass
 class SbatchConfig:
