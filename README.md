@@ -1,6 +1,6 @@
 # scaling2
 
-To run multiple experiments you have to create an `experiments.yaml` file with a list of `datasets` and `models` see the [cfg_templates.py](./src/cfg_templates.py) file to know the required fields. One can check [this config](./configs/experiments.yaml) for an example.
+To run multiple experiments you have to create an `experiments.yaml` file with a list of `datasets` and `models` see the [cfg_templates.py](./src/cfg_templates.py) file to know the required fields. One can check [this train config](./configs/experiments.yaml) for a training example and [this val config](./configs/val_experiments.yaml) for a validation one.
 
 Once that is in place, one should run
 ```
