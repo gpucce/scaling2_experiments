@@ -6,8 +6,8 @@ from omegaconf import OmegaConf
 from .cfg_templates import Arch, Data, Experiment, SbatchConfig, ExperimentsConfig
 
 
-TRAIN_CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --name={RUN_NAME} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
-VAL_CMD_TEMPLATE = """srun --cpu_bind=none,v --accel-bind=gn clip_benchmark eval --model={MODEL_NAME} --pretrained={PRETRAINED_PATH} --dataset={DATASET} --dataset_root={DATA_PATH} --output={OUTPUT_PATH} --batch_size={BATCH_SIZE}"""
+TRAIN_CMD_TEMPLATE = """python -u src/training/main.py --save-frequency=1 --dataset-type=webdataset --train-data={TRAIN_DATA} --train-num-samples={TRAIN_NUM_SAMPLES} --logs={LOGS} --warmup={WARMUP} --batch-size={BATCH_SIZE} --epochs={EPOCHS} --workers=4 --model {MODEL} --seed={SEED} --local-loss --gather-with-grad {DATASET_RESAMPLED} --log-every-n-steps=10 --coca-contrastive-loss-weight 1.0 --coca-caption-loss-weight 1.0 --report-to "wandb" --grad-checkpointing={GRAD_CHECKPOINTING} --lr={LR} --ddp-static-graph --precision={PRECISION} --name={RUN_NAME} --wandb-project-name={WANDB_PROJECT_NAME}  --val-frequency={VAL_FREQUENCY} --imagenet-val={IMAGENET_VAL_PATH}"""
+VAL_CMD_TEMPLATE = """clip_benchmark eval --model={MODEL_NAME} --pretrained={PRETRAINED_PATH} --task {TASK} --dataset={DATASET} --dataset_root={DATA_PATH} --output={OUTPUT_PATH} --batch_size={BATCH_SIZE}"""
 
 train_cmd_template_kwargs = [
     "TRAIN_DATA", "TRAIN_NUM_SAMPLES", "LOGS", "WARMUP",
@@ -18,7 +18,7 @@ train_cmd_template_kwargs = [
 
 val_cmd_template_kwargs = [
     "BATCH_SIZE", "DATA_PATH", "OUTPUT_PATH", "DATASET",
-    "PRETRAINED_PATH", "MODEL_NAME"
+    "PRETRAINED_PATH", "MODEL_NAME", "TASK"
 ]
 
 SBATCH_TEMPLATE = """#!/bin/bash
@@ -32,6 +32,10 @@ SBATCH_TEMPLATE = """#!/bin/bash
 #SBATCH --output={OUTPUT}
 #SBATCH --job-name={JOB_NAME}
 #SBATCH --array=1-{ARRAY}%{JOBS_AT_ONCE}
+
+eval "$(/p/home/jusers/puccetti1/juwels/puccetti1/miniconda3/bin/conda shell.bash hook)" # init conda
+conda activate open_clip
+export CUDA_VISIBLE_DEVICES="0,1,2,3"
 """ # %4 max number of jobs at the same time
 
 
@@ -43,7 +47,7 @@ sbatch_tempalte_kwargs = [
     "ARRAY"
 ]
 
-def main(*, cfg, task="scripts", test=False, stage="train"):
+def main(*, cfg, task="scripts", test=False):
 
     cfg = OmegaConf.load(cfg)
     # assert "models" in cfg
@@ -70,7 +74,7 @@ def main(*, cfg, task="scripts", test=False, stage="train"):
         for experiment in experiments:
 
             if experiment.stage == "train":
-                cmd_template = TRAIN_CMD_TEMPLATE.format(
+                cmd = TRAIN_CMD_TEMPLATE.format(
                     LR = experiment.lr,
                     TRAIN_DATA = experiment.data_path,
                     TRAIN_NUM_SAMPLES = experiment.size,
@@ -79,17 +83,17 @@ def main(*, cfg, task="scripts", test=False, stage="train"):
                     EPOCHS = experiment.epochs,
                     MODEL = experiment.model_name,
                     DATASET_RESAMPLED = "--dataset-resampled" if experiment.resampled else "",
-                    SEED = experiment.get("seed", None),
+                    SEED = experiment.seed,
                     GRAD_CHECKPOINTING = "--grad-checkpointing" if experiment.checkpointing else "",
-                    PRECISION = experiment.get("precision", None),
-                    WANDB_PROJECT_NAME = experiment.get("wand_project_name", None),
+                    PRECISION = experiment.precision,
+                    WANDB_PROJECT_NAME = experiment.wand_project_name,
                     RUN_NAME = "model_{}_data_{}_size_{}".format(experiment.model_name, experiment.data_name, experiment.size),
-                    VAL_FREQUENCY = experiment.get("val_frequency", None),
-                    IMAGENET_VAL_PATH = experiment.get("imagenet_val_path", None),
-                    LOGS = experiment.get("logs", None),
+                    VAL_FREQUENCY = experiment.val_frequency,
+                    IMAGENET_VAL_PATH = experiment.imagenet_val_path,
+                    LOGS = experiment.logs,
                 )
 
-            elif experiment.stage == "val":
+            elif experiment.stage == "validation":
                 cmd = VAL_CMD_TEMPLATE.format(
                     BATCH_SIZE = experiment.batch_size,
                     DATA_PATH = experiment.data_path,
@@ -97,6 +101,7 @@ def main(*, cfg, task="scripts", test=False, stage="train"):
                     DATASET = experiment.data_name,
                     PRETRAINED_PATH = experiment.pretrained_path,
                     MODEL_NAME = experiment.model_name,
+                    TASK = experiment.task,
                 )
 
             fd.write(cmd)
@@ -113,8 +118,8 @@ def main(*, cfg, task="scripts", test=False, stage="train"):
         PARTITION = sbatch_cfg.partition,
         OUTPUT = sbatch_cfg.output,
         JOB_NAME = sbatch_cfg.job_name,
-        TASKS_AT_ONCE= sbatch_cfg.jobs_at_once,
-        ARRAY = len(experiments),
+        JOBS_AT_ONCE= sbatch_cfg.jobs_at_once,
+        ARRAY = len(experiments) // sbatch_cfg.ntasks_per_node,
     )
 
     if test:
@@ -135,12 +140,11 @@ def main(*, cfg, task="scripts", test=False, stage="train"):
     with open(sbatch_cfg.sbatch_script_file_path, "w") as fd:
         fd.write(tpl)
         fd.write("\n\n\n")
-
-        cmd = " \"$(cat {exp_list} | sed -n -e SLURM_ARRAY_TASK_IDp)\"".format(exp_list=sbatch_cfg.experiments_list_file_path)
-        cmd = cmd.replace("SLURM_ARRAY_TASK_IDp", "\"${SLURM_ARRAY_TASK_ID}p\"")
+        cmd = "ID=$(($SLURM_ARRAY_TASK_ID * $SLURM_NTASKS_PER_NODE + $SLURM_LOCALID))\n"
+        cmd += "cmd=\"$(cat {exp_list} | sed -n -e \"${{ID}}p\")\"\n".format(exp_list=sbatch_cfg.experiments_list_file_path)
         if not test:
-            fd.write("srun --cpu_bind=none,v --accel-bind=gn python -u")
             fd.write(cmd)
+            fd.write("srun --cpu_bind=none,v --accel-bind=gn $cmd\n")
         else:
             fd.write("mkdir -p test_logs\n")
             fd.write("echo")

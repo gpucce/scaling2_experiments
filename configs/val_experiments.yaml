@@ -1,0 +1,37 @@
+sbatch_config:
+  nodes: 1
+  gpus: 4
+  account: laionize
+  time: "00:10:00"
+  ntasks_per_node: 4
+  cpus_per_task: 6
+  partition: booster
+  output: "slurm_logs/slurm-%A_%a.out"
+  job_name: scaling2
+  jobs_at_once: 4
+  experiments_list_file_path: "./experiments/val_experiments_list.txt"
+  sbatch_script_file_path: "./sbatch_scripts/val_experiment_sbatch_script.sbatch"
+
+datasets:
+  -
+    task: "zeroshot_retrieval"
+    data_name: "mscoco_captions"
+    data_path: "/p/home/jusers/puccetti1/juwels/puccetti1/open_clip/data/coco_data_2014"
+  -
+    task: "zeroshot_classification"
+    data_name: "imagenet1k"
+    data_path: "/p/home/jusers/puccetti1/juwels/puccetti1/open_clip/data/imagenet1k"
+
+models:
+  -
+    model_name: "ViT-B-32"
+    pretrained_path: "laion2b_s34b_b79k"
+    batch_size: 32
+    logs: test_val_1
+    stage: validation
+  -
+    model_name: "mammut_ViT-B-32"
+    pretrained_path: "/p/home/jusers/puccetti1/juwels/open_clip_models/finished_runs/mammut_13B_datacomp/checkpoints/epoch_97.pt"
+    batch_size: 32
+    logs: test_val_2
+    stage: validation
