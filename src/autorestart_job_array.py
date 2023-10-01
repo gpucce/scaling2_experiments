@@ -48,7 +48,7 @@ def main(
     output_file_template="slurm-{job_id}_{array_task_id}.out",
     check_interval_secs=60 * 15,
     start_condition="",
-    termination_str="",
+    termination_str="MADEITTOTHEEND",
     verbose=True,
     resume_job_id: str = None,
     resume_array_task_ids: str = None,

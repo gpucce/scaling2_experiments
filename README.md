@@ -36,12 +36,17 @@ Now one should be able to start all the jobs with the command:
 sbatch sbatch_script.sbatch # autorestart coming soon
 ```
 
-<!-- ```
+> NOTE: the logs paths are created when generating the sbatch scripts and not when running the actual experiments. Don't delete them.
+
+## Autorestart [Experimental]
+
+One can try using autorestart like this:
+
+```bash
 python -m src.autorestart_job_array \
     "sbatch sbatch_script.sbatch" \
     --check-interval-secs 3 \ # change depending on the job
     --output-file-template "slurm_logs/slurm-{job_id}_{array_task_id}.out" \
-    --termination-str MADEITTOTHEEND \
     --verbose 1
 ```
 > NOTE: make sure that `--output-file-template <this_path>` matches `sbatch_config.output: <this_path>` . To do this one needs to change `{job_id} -> %A and {array_task_id} -> %a` so for using
@@ -50,13 +55,9 @@ python -m src.autorestart_job_array \
 > ```
 > in the config one will need
 > ```yaml
-> ...
 > sbatch_config:
 >   output: slurm-%A_%a.log
 > ```
--->
-
-> NOTE: the logs path are created when generating the sbatch scripts and not when running the actual experiments. Don't delete it.
 
 
 ## TODO
