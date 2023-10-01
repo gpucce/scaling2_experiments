@@ -37,7 +37,7 @@ val_cmd_template_kwargs = [
     "DISTRIBUTED",
 ]
 
-SBATCH_TEMPLATE = """#!/bin/bash
+SBATCH_TEMPLATE = """#!/bin/bash -xe
 #SBATCH --nodes={NODES}
 #SBATCH --gpus-per-node={GPUS}
 #SBATCH --account={ACCOUNT}
@@ -106,9 +106,11 @@ def main(*, cfg, task="scripts", test=False):
                     if experiment.checkpointing
                     else "",
                     PRECISION=experiment.precision,
-                    WANDB_PROJECT_NAME=experiment.wand_project_name,
-                    RUN_NAME="model_{}_data_{}_size_{}".format(
-                        experiment.model_name, experiment.data_name, experiment.size
+                    WANDB_PROJECT_NAME=experiment.wandb_project_name,
+                    RUN_NAME="model_{name}_data_{data}_size_{size}".format(
+                        name=experiment.model_name,
+                        data=experiment.data_name,
+                        size=experiment.size,
                     ),
                     VAL_FREQUENCY=experiment.val_frequency,
                     IMAGENET_VAL_PATH=experiment.imagenet_val_path,
@@ -119,7 +121,7 @@ def main(*, cfg, task="scripts", test=False):
                 cmd = VAL_CMD_TEMPLATE.format(
                     BATCH_SIZE=experiment.batch_size,
                     DATA_PATH=experiment.data_path,
-                    OUTPUT_PATH="{logs}_{model_name}_{task}_{dataset}.json".format(
+                    OUTPUT_PATH="results/{logs}_{model_name}_{task}_{dataset}.json".format(
                         logs=experiment.logs,
                         model_name=experiment.model_name,
                         task=experiment.task,
@@ -131,6 +133,10 @@ def main(*, cfg, task="scripts", test=False):
                     TASK=experiment.task,
                     DISTRIBUTED="--distributed" if experiment.distributed else "",
                 )
+
+                if experiment.extra_args:
+                    for i in experiment.extra_args:
+                        cmd += " " + i
 
             fd.write(cmd)
             fd.write("\n")
@@ -167,13 +173,16 @@ def main(*, cfg, task="scripts", test=False):
     with open(sbatch_cfg.sbatch_script_file_path, "w") as fd:
         fd.write(tpl)
         fd.write("\n\n")
-        for line in sbatch_cfg.extra_preamble:
-            fd.write(line)
-            fd.write("\n")
+        if sbatch_cfg.get("extra_preamble", None):
+            for line in sbatch_cfg.extra_preamble:
+                fd.write(line)
+                fd.write("\n")
 
         fd.write("\n\n")
-        cmd = 'cmd="$(cat {exp_list} | sed -n -e "${{SLURM_ARRAY_TASK_ID}}p")"\n'.format(
-            exp_list=sbatch_cfg.experiments_list_file_path
+        cmd = (
+            'cmd="$(cat {exp_list} | sed -n -e "${{SLURM_ARRAY_TASK_ID}}p")"\n'.format(
+                exp_list=sbatch_cfg.experiments_list_file_path
+            )
         )
         fd.write(cmd)
         if not test:
@@ -182,6 +191,8 @@ def main(*, cfg, task="scripts", test=False):
             fd.write("mkdir -p test_logs\n")
             fd.write("echo")
             fd.write(cmd)
+        fd.write("\n")
+        fd.write('echo "MADEITTOTHEEND"\n')
 
 
 # older version, keep for now

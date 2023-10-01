@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
+
 @dataclass
 class Data:
     data_name: str
@@ -13,6 +14,7 @@ class Data:
     val_frequency: Optional[int] = None
     task: Optional[str] = None
     distributed: bool = True
+
 
 @dataclass
 class Arch:
@@ -28,11 +30,13 @@ class Arch:
     wandb_project_name: Optional[str] = None
     logs: Optional[str] = None
     stage: Optional[str] = "train"
+    extra_args: Optional[str] = None
+
 
 @dataclass
 class Experiment:
     model_name: str
-    batch_size:int
+    batch_size: int
     warmup: int
     lr: float
     checkpointing: bool
@@ -53,6 +57,8 @@ class Experiment:
     task: Optional[str]
     stage: Optional[str]
     distributed: bool
+    extra_args: Optional[str]
+
 
 @dataclass
 class SbatchConfig:
@@ -68,7 +74,7 @@ class SbatchConfig:
     experiments_list_file_path: str = "experiments_list.txt"
     sbatch_script_file_path: str = "./sbatch_script.sbatch"
     jobs_at_once: int = 4
-    extra_preamble: List[str] = None
+    extra_preamble: Optional[List[str]] = None
 
 
 @dataclass
