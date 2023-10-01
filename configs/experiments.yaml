@@ -1,6 +1,3 @@
-
-global_logs: "pretraining_results"
-
 sbatch_config:
   nodes: 64
   gpus: 4

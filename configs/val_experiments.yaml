@@ -1,6 +1,3 @@
-
-global_logs: "validation_results"
-
 sbatch_config:
   nodes: 1
   gpus: 4
@@ -31,7 +28,7 @@ models:
   -
     model_name: "mammut_ViT-B-32"
     pretrained_path: "/p/home/jusers/puccetti1/juwels/open_clip_models/finished_runs/mammut_13B_datacomp/checkpoints/epoch_97.pt"
-    logs: mammut_13B_datacomp
+    logs: validation_results/mammut_13B_datacomp
     batch_size: 256
     stage: validation
     extra_args:
@@ -40,7 +37,7 @@ models:
     model_name: "mammut_ViT-B-32"
     pretrained_path: "/p/home/jusers/puccetti1/juwels/open_clip_models/finished_runs/mammut_64_nodes/checkpoints/epoch_97.pt"
     batch_size: 256
-    logs: mammut_64_nodes
+    logs: validation_results/mammut_64_nodes
     stage: validation
     extra_args:
       - "--recall_k 1 5"
@@ -48,7 +45,7 @@ models:
     model_name: "mammut_ViT-B-32"
     pretrained_path: "/p/home/jusers/puccetti1/juwels/open_clip_models/finished_runs/2023_08_12-09_27_30-model_mammut_ViT-B-32-lr_0.0009-b_352-j_4-p_amp_bfloat16/checkpoints/epoch_97.pt"
     batch_size: 256
-    logs: "2023_08_12-09_27_30-model_mammut_ViT-B-32-lr_0.0009-b_352-j_4-p_amp_bfloat16"
+    logs: "validation_results/2023_08_12-09_27_30-model_mammut_ViT-B-32-lr_0.0009-b_352-j_4-p_amp_bfloat16"
     stage: validation
     extra_args:
       - "--recall_k 1 5"
@@ -56,7 +53,7 @@ models:
     model_name: "mammut_ViT-B-32"
     pretrained_path: "/p/home/jusers/puccetti1/juwels/open_clip_models/finished_runs/2023_08_09-11_22_39-model_mammut_ViT-B-32-lr_0.0005-b_352-j_4-p_amp_bfloat16/checkpoints/epoch_97.pt"
     batch_size: 256
-    logs: "2023_08_09-11_22_39-model_mammut_ViT-B-32-lr_0.0005-b_352-j_4-p_amp_bfloat16"
+    logs: "validation_results/2023_08_09-11_22_39-model_mammut_ViT-B-32-lr_0.0005-b_352-j_4-p_amp_bfloat16"
     stage: validation
     extra_args:
       - "--recall_k 1 5"
