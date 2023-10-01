@@ -56,6 +56,9 @@ python -m src.autorestart_job_array \
 > ```
 -->
 
+> NOTE: the logs path are created when generating the sbatch scripts and not when running the actual experiments. Don't delete it.
+
+
 ## TODO
 - [ ] Add option to ignore experiments
 - [ ] More testing
