@@ -114,14 +114,18 @@ def main(*, cfg, task="scripts", test=False):
                     ),
                     VAL_FREQUENCY=experiment.val_frequency,
                     IMAGENET_VAL_PATH=experiment.imagenet_val_path,
-                    LOGS=experiment.logs,
+                    LOGS=".{global_logs}/{logs}".format(
+                        global_logs=experiment.get("global_logs", "."),
+                        logs=experiment.logs,
+                    ),
                 )
 
             elif experiment.stage == "validation":
                 cmd = VAL_CMD_TEMPLATE.format(
                     BATCH_SIZE=experiment.batch_size,
                     DATA_PATH=experiment.data_path,
-                    OUTPUT_PATH="results/{logs}_{model_name}_{task}_{dataset}.json".format(
+                    OUTPUT_PATH="{global_logs}/{logs}/{model_name}_{task}_{dataset}.json".format(
+                        global_logs=experiment.get("global_logs", "."),
                         logs=experiment.logs,
                         model_name=experiment.model_name,
                         task=experiment.task,

@@ -1,3 +1,6 @@
+
+global_logs: "validation_results"
+
 sbatch_config:
   nodes: 1
   gpus: 4
@@ -15,6 +18,7 @@ sbatch_config:
     - eval "$(/p/home/jusers/puccetti1/juwels/puccetti1/miniconda3/bin/conda shell.bash hook)" # init conda
     - conda activate open_clip
     - export CUDA_VISIBLE_DEVICES="0,1,2,3"
+    - echo $SLURM_ARRAY_TASK_ID
 
 datasets:
   -
@@ -22,22 +26,37 @@ datasets:
     data_name: "mscoco_captions"
     data_path: "/p/home/jusers/puccetti1/juwels/puccetti1/open_clip/data/coco_data_2014"
     distributed: true
-  -
-    task: "zeroshot_classification"
-    data_name: "imagenet1k"
-    data_path: "/p/home/jusers/puccetti1/juwels/puccetti1/open_clip/data/imagenet1k"
-    distributed: true
 
 models:
   -
-    model_name: "ViT-B-32"
-    pretrained_path: "laion2b_s34b_b79k"
-    batch_size: 32
-    logs: test_val_1
-    stage: validation
-  -
     model_name: "mammut_ViT-B-32"
     pretrained_path: "/p/home/jusers/puccetti1/juwels/open_clip_models/finished_runs/mammut_13B_datacomp/checkpoints/epoch_97.pt"
-    batch_size: 32
-    logs: test_val_2
+    logs: mammut_13B_datacomp
+    batch_size: 256
     stage: validation
+    extra_args:
+      - "--recall_k 1 5"
+  -
+    model_name: "mammut_ViT-B-32"
+    pretrained_path: "/p/home/jusers/puccetti1/juwels/open_clip_models/finished_runs/mammut_64_nodes/checkpoints/epoch_97.pt"
+    batch_size: 256
+    logs: mammut_64_nodes
+    stage: validation
+    extra_args:
+      - "--recall_k 1 5"
+  -
+    model_name: "mammut_ViT-B-32"
+    pretrained_path: "/p/home/jusers/puccetti1/juwels/open_clip_models/finished_runs/2023_08_12-09_27_30-model_mammut_ViT-B-32-lr_0.0009-b_352-j_4-p_amp_bfloat16/checkpoints/epoch_97.pt"
+    batch_size: 256
+    logs: "2023_08_12-09_27_30-model_mammut_ViT-B-32-lr_0.0009-b_352-j_4-p_amp_bfloat16"
+    stage: validation
+    extra_args:
+      - "--recall_k 1 5"
+  -
+    model_name: "mammut_ViT-B-32"
+    pretrained_path: "/p/home/jusers/puccetti1/juwels/open_clip_models/finished_runs/2023_08_09-11_22_39-model_mammut_ViT-B-32-lr_0.0005-b_352-j_4-p_amp_bfloat16/checkpoints/epoch_97.pt"
+    batch_size: 256
+    logs: "2023_08_09-11_22_39-model_mammut_ViT-B-32-lr_0.0005-b_352-j_4-p_amp_bfloat16"
+    stage: validation
+    extra_args:
+      - "--recall_k 1 5"

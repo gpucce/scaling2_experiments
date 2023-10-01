@@ -1,3 +1,6 @@
+
+global_logs: "pretraining_results"
+
 sbatch_config:
   nodes: 64
   gpus: 4
@@ -11,6 +14,11 @@ sbatch_config:
   jobs_at_once: 4
   experiments_list_file_path: "./experiments/experiments_list.txt"
   sbatch_script_file_path: "./sbatch_scripts/experiment_sbatch_script.sbatch"
+  extra_preamble: # this strings will get copied in the sbatch scripts as they are
+    - eval "$(/p/home/jusers/puccetti1/juwels/puccetti1/miniconda3/bin/conda shell.bash hook)" # init conda
+    - conda activate open_clip
+    - export CUDA_VISIBLE_DEVICES="0,1,2,3"
+    - echo $SLURM_ARRAY_TASK_ID
 
 datasets:
   -

@@ -85,7 +85,11 @@ def main(
 
             if array_task_ids_to_restart:
                 array_task_ids_to_restart = sorted(array_task_ids_to_restart, key=int)
-                cmd = re.sub("^sbatch( --array=[,\d-]+)?", "sbatch --array=" + ",".join(array_task_ids_to_restart), cmd)
+                cmd = re.sub(
+                    "^sbatch( --array=[,\d-]+)?",
+                    "sbatch --array=" + ",".join(array_task_ids_to_restart),
+                    cmd,
+                )
                 array_task_ids_to_restart = []
                 if verbose:
                     print("Relaunching job with array ids:", cmd)
@@ -131,7 +135,9 @@ def main(
             if verbose:
                 print(f"Task IDs:", array_task_ids)
                 print(f"Task IDs done:", array_task_ids_done)
-                print(f"Task IDs to restart:", sorted(array_task_ids_to_restart, key=int))
+                print(
+                    f"Task IDs to restart:", sorted(array_task_ids_to_restart, key=int)
+                )
 
             for array_task_id in array_task_ids:
                 if array_task_id in array_task_ids_done:
@@ -225,7 +231,10 @@ def main(
                     if verbose:
                         print(f"Task IDs:", array_task_ids)
                         print(f"Task IDs done:", array_task_ids_done)
-                        print(f"Task IDs to restart:", sorted(array_task_ids_to_restart, key=int))
+                        print(
+                            f"Task IDs to restart:",
+                            sorted(array_task_ids_to_restart, key=int),
+                        )
                     return
 
             time.sleep(check_interval_secs)
