@@ -1,3 +1,6 @@
+
+global_output_dir: "/p/scratch/laionize/scaling_laws_2_experiments/training"
+
 sbatch_config:
   nodes: 64
   gpus: 4

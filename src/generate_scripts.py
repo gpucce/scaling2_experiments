@@ -118,12 +118,15 @@ def main(*, cfg, task="scripts", test=False):
                 )
 
             elif experiment.stage == "validation":
-                Path("./" + experiment.logs).mkdir(parents=True, exist_ok=True)
+                global_output_dir = Path(cfg.global_output_dir)
+                global_output_dir.mkdir(parents=True, exist_ok=True)
+                experiment_output_dir = global_output_dir / experiment.logs
+                experiment_output_dir.mkdir(parents=True, exist_ok=True)
                 cmd = VAL_CMD_TEMPLATE.format(
                     BATCH_SIZE=experiment.batch_size,
                     DATA_PATH=experiment.data_path,
                     OUTPUT_PATH=(
-                        Path(experiment.logs)
+                        experiment_output_dir
                         / Path(
                             "{model_name}_{task}_{dataset}.json".format(
                                 model_name=experiment.model_name,

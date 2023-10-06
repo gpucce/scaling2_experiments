@@ -82,3 +82,4 @@ class ExperimentsConfig:
     models: List[Arch]
     datasets: List[Data]
     sbatch_config: SbatchConfig
+    global_output_dir: str = "./"
