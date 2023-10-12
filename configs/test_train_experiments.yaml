@@ -1,0 +1,68 @@
+
+datasets:
+  -
+    data_name: laion2b
+    data_path: "/p/fastdata/mmlaion/laion2B-en/{00000..23295}.tar"
+  -
+    data_name: datacomp
+    data_path: "/p/scratch/ccstdl/cherti1/datacomp_1B/{0000000..0139827}.tar"
+
+models:
+  -
+    model_name: "ViT-S-32"
+    batch_size: 1376
+    warmup: 2_000
+    lr: 1e-3
+    nodes: 16
+    checkpointing: true
+
+  -
+    model_name: "ViT-B-32"
+    batch_size: 344
+    warmup: 2_000
+    lr: 1e-3
+    nodes: 64
+    checkpointing: true
+
+experiments:
+  -
+    name: ["ID_EXP_1"] 
+    models: ["ViT-S-32", "ViT-B-32"]
+    datasets: [laion2b, datacomp]
+    samples_seen: [[1.28M 10 false], [12.8M 20 false]]
+    global_output_path: /p/project/PATH_TO_SOMEWHERE
+    root_log_path: logs
+    sbatch_script_file_path: "sbatch_scripts"
+    gpus: 4
+    account: laionize
+    partition: booster
+    time: "00:10:00"
+    ntasks_per_node: 4
+    cpus_per_task: 10
+    output: "slurm-%A_%a.out"
+    jobs_at_once: 4
+    extra_preamble: # this strings will get copied in the sbatch scripts as they are
+     - source env_1  # init env
+     - export CUDA_VISIBLE_DEVICES="0,1,2,3"
+
+  -
+    name: ["ID_EXP_2"]
+    models: ["ViT-T-32"]
+    datasets: [laion400m]
+    samples_seen: [[1.28M 10 false], [12.8M 20 false], [128M 20 false]]
+    global_output_path: /p/project/PATH_TO_SOMEWHERE
+    root_log_path: logs
+    sbatch_script_file_path: "sbatch_scripts"
+    gpus: 4
+    account: transfernetx
+    partition: booster
+    time: "00:05:00"
+    ntasks_per_node: 4
+    cpus_per_task: 10
+    output: "slurm-%A_%a.out"
+    jobs_at_once: 4
+    extra_preamble: # this strings will get copied in the sbatch scripts as they are
+     - source env_2  # init env
+     - export CUDA_VISIBLE_DEVICES="0,1,2,3"
+
+
